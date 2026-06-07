@@ -1,0 +1,8 @@
+flask
+python-dotenv
+moviepy
+Pillow
+elevenlabs
+spotipy
+requests
+gunicorn

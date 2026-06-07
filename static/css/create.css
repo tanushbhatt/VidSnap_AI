@@ -1,0 +1,99 @@
+.upload-section {
+    padding: 60px 0;
+}
+
+.upload-container {
+    max-width: 800px;
+    margin: 0 auto;
+    position: relative;
+}
+
+.dropzone {
+    border: 2px dashed rgba(139, 92, 246, 0.5);
+    border-radius: 16px;
+    padding: 40px;
+    text-align: center;
+    background: rgba(139, 92, 246, 0.05);
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.dropzone:hover {
+    background: rgba(139, 92, 246, 0.1);
+    border-color: var(--accent-primary);
+}
+
+.file-preview {
+    width: 100px;
+    height: 100px;
+    border-radius: 8px;
+    overflow: hidden;
+    position: relative;
+    border: 1px solid rgba(255,255,255,0.1);
+}
+
+.file-preview img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.video-preview-icon {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: #2a2d36;
+    color: white;
+}
+
+/* Loading Overlay */
+#loadingOverlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(15, 17, 21, 0.9);
+    backdrop-filter: blur(5px);
+    border-radius: 16px;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.loading-content {
+    background: var(--bg-card);
+    padding: 40px;
+    border-radius: 16px;
+    border: 1px solid rgba(139, 92, 246, 0.3);
+    box-shadow: 0 0 30px rgba(139, 92, 246, 0.2);
+}
+
+.spotify-card {
+    transition: transform 0.2s, background 0.2s;
+}
+.spotify-card:hover {
+    transform: scale(1.02);
+    box-shadow: 0 5px 15px rgba(25, 135, 84, 0.15);
+}
+.spotify-results-grid::-webkit-scrollbar {
+    width: 6px;
+}
+.spotify-results-grid::-webkit-scrollbar-thumb {
+    background: rgba(25, 135, 84, 0.5);
+    border-radius: 10px;
+}
+
+/* Custom Modal Backdrop Overlay */
+.modal-backdrop {
+    background-color: rgba(15, 17, 21, 0.4) !important;
+    backdrop-filter: blur(8px);
+}
+
+.modal-backdrop.show {
+    opacity: 1 !important;
+}

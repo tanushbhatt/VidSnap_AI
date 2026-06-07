@@ -1,0 +1,306 @@
+{% extends "base.html" %}
+
+{% block title %}Create Reel - ReelFlow{% endblock %}
+
+{% block extra_css %} 
+<link rel="stylesheet" href="{{ url_for('static', filename='css/create.css') }}">
+{% endblock %}
+
+{% block content %}
+<section class="upload-section">
+    <div class="container">
+        <div class="upload-container glass-card">
+            <div class="text-center mb-4">
+                <h1 class="upload-title">Craft Your Reel</h1>
+                <p class="upload-instructions text-muted">Upload media, add an AI prompt, and pick a vibe.</p>
+            </div>
+            
+            <form id="createReelForm" enctype="multipart/form-data">
+                <input name="uuid" type="hidden" value="{{myid}}" id="uuidInput" />
+                
+                <div class="form-group mb-4">
+                    <label class="form-label fw-bold">1. Upload Media (Images/Videos)</label>
+                    <div class="dropzone" id="myDropzone" onclick="document.getElementById('fileInput').click()">
+                        <i class="fa-solid fa-cloud-arrow-up fs-1 mb-2 text-primary"></i>
+                        <p class="mb-0">Click to upload or drag & drop</p>
+                        <small class="text-muted">PNG, JPG, MP4</small>
+                    </div>
+                    <input type="file" id="fileInput" name="files[]" multiple accept="image/*,video/mp4" style="display: none;" onchange="handleFiles(this.files)">
+                    
+                    <div id="filePreviewContainer" class="d-flex flex-wrap gap-2 mt-3"></div>
+                </div>
+                
+                <div class="form-group mb-4">
+                    <label class="form-label fw-bold">2. AI Voiceover Prompt (Optional)</label>
+                    <textarea class="form-control premium-input" id="textInput" name="text" placeholder="E.g., 'Welcome to my daily vlog...'" rows="3"></textarea>
+                </div>
+
+                <div class="form-group mb-4">
+                    <label class="form-label fw-bold">3. Select Background Music</label>
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="music-selector flex-grow-1">
+                            <select name="music" class="form-select premium-input" id="musicSelect">
+                                <option value="none">No Background Music</option>
+                                {% for song in songs %}
+                                    <option value="{{song.filename}}">{{song.filename}} ({{song.category}})</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <button type="button" class="btn btn-outline-success d-flex align-items-center gap-2" data-bs-toggle="modal" data-bs-target="#spotifyModal">
+                            <i class="fa-brands fa-spotify"></i> Spotify
+                        </button>
+                    </div>
+                    <input type="hidden" id="spotifyUrlInput" name="spotify_url" value="none">
+
+
+                </div>
+                
+                <button type="button" class="btn primary-cta w-100" id="submitBtn" onclick="submitForm()">
+                    <i class="fa-solid fa-wand-magic-sparkles"></i> Generate Reel
+                </button>
+            </form>
+
+            <!-- Loading Overlay -->
+            <div id="loadingOverlay" style="display: none;">
+                <div class="loading-content text-center">
+                    <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem;"></div>
+                    <h3 class="mt-3" id="loadingStatus">Initializing...</h3>
+                    <p class="text-muted">Please wait while AI processes your reel</p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Spotify Modal -->
+<div class="modal fade" id="spotifyModal" tabindex="-1" aria-labelledby="spotifyModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content glass-card" style="background: var(--bg-card); padding: 0;">
+      <div class="modal-header border-bottom-0 p-3 pb-0">
+        <h5 class="modal-title text-success fw-bold" id="spotifyModalLabel"><i class="fa-brands fa-spotify"></i> Spotify Music</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" style="filter: invert(1) grayscale(100%) brightness(200%);"></button>
+      </div>
+      <div class="modal-body p-3">
+        <div class="d-flex gap-2 mb-3">
+            <div class="input-group">
+                <span class="input-group-text premium-input border-end-0"><i class="fa-solid fa-magnifying-glass"></i></span>
+                <input type="text" class="form-control premium-input border-start-0 ps-0" id="spotifySearchInput" placeholder="Search song, artist, mood...">
+                <button class="btn btn-outline-success" type="button" onclick="searchSpotify()">Search</button>
+            </div>
+        </div>
+        <button class="btn btn-sm btn-outline-primary w-100 mb-3" type="button" onclick="autoSuggestSpotify()">
+            <i class="fa-solid fa-wand-magic-sparkles"></i> Auto-Suggest from AI Prompt
+        </button>
+        <div id="spotifyResults" class="spotify-results-grid" style="max-height: 400px; overflow-y: auto;">
+            <p class="text-muted text-center mt-3">Search for a track or use AI Auto-Suggest.</p>
+        </div>
+      </div>
+      <div class="modal-footer border-top-0 p-3 pt-0">
+        <button type="button" class="btn btn-outline-secondary w-100" data-bs-dismiss="modal">Done</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    let selectedFiles = [];
+
+    function handleFiles(files) {
+        const container = document.getElementById('filePreviewContainer');
+        
+        for(let i=0; i<files.length; i++) {
+            selectedFiles.push(files[i]);
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const div = document.createElement('div');
+                div.className = 'file-preview';
+                
+                if(files[i].type.startsWith('image/')) {
+                    div.innerHTML = `<img src="${e.target.result}">`;
+                } else {
+                    div.innerHTML = `<div class="video-preview-icon"><i class="fa-solid fa-video"></i><br><small>${files[i].name}</small></div>`;
+                }
+                container.appendChild(div);
+            }
+            reader.readAsDataURL(files[i]);
+        }
+    }
+
+    function submitForm() {
+        if(selectedFiles.length === 0) {
+            alert("Please upload at least one image or video!");
+            return;
+        }
+
+        const formData = new FormData();
+        const uuidVal = document.getElementById('uuidInput').value;
+        formData.append('uuid', uuidVal);
+        formData.append('text', document.getElementById('textInput').value);
+        formData.append('music', document.getElementById('musicSelect').value);
+        formData.append('spotify_url', document.getElementById('spotifyUrlInput').value);
+        
+        selectedFiles.forEach((file, index) => {
+            formData.append(`file_${index}`, file);
+        });
+
+        // Show loading UI
+        document.getElementById('loadingOverlay').style.display = 'flex';
+        document.getElementById('submitBtn').disabled = true;
+
+        fetch('/api/create-reel', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if(data.success) {
+                pollStatus(data.uuid);
+            } else {
+                alert("Error: " + data.error);
+                resetUI();
+            }
+        })
+        .catch(err => {
+            alert("Network error occurred!");
+            resetUI();
+        });
+    }
+
+    function pollStatus(uuid) {
+        const interval = setInterval(() => {
+            fetch(`/api/status/${uuid}`)
+            .then(res => res.json())
+            .then(data => {
+                document.getElementById('loadingStatus').innerText = data.status;
+                if(data.status === 'Completed') {
+                    clearInterval(interval);
+                    window.location.href = '/gallery';
+                } else if(data.status.startsWith('Error')) {
+                    clearInterval(interval);
+                    alert(data.status);
+                    resetUI();
+                }
+            });
+        }, 2000);
+    }
+
+    function resetUI() {
+        document.getElementById('loadingOverlay').style.display = 'none';
+        document.getElementById('submitBtn').disabled = false;
+    }
+
+    function autoSuggestSpotify() {
+        const promptText = document.getElementById('textInput').value;
+        const resultsDiv = document.getElementById('spotifyResults');
+        resultsDiv.innerHTML = '<div class="text-center mt-3"><div class="spinner-border text-primary" role="status"></div><p class="mt-2 text-muted">AI Suggesting tracks...</p></div>';
+        
+        fetch('/api/spotify/suggest', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({text: promptText})
+        })
+        .then(res => res.json())
+        .then(data => renderSpotifyResults(data, resultsDiv))
+        .catch(err => {
+            resultsDiv.innerHTML = '<p class="text-danger text-center mt-3">Error fetching suggestions.</p>';
+        });
+    }
+
+    function searchSpotify() {
+        const query = document.getElementById('spotifySearchInput').value;
+        if (!query) return;
+        
+        const resultsDiv = document.getElementById('spotifyResults');
+        resultsDiv.innerHTML = '<div class="text-center mt-3"><div class="spinner-border text-success" role="status"></div></div>';
+        
+        fetch(`/api/spotify/search?q=${encodeURIComponent(query)}`)
+        .then(res => res.json())
+        .then(data => renderSpotifyResults(data, resultsDiv))
+        .catch(err => {
+            resultsDiv.innerHTML = '<p class="text-danger text-center mt-3">Error fetching Spotify results.</p>';
+        });
+    }
+    
+    function renderSpotifyResults(data, resultsDiv) {
+        resultsDiv.innerHTML = '';
+        if (data.length === 0) {
+            resultsDiv.innerHTML = '<p class="text-muted text-center mt-3">No results found or Spotify API credentials missing.</p>';
+            return;
+        }
+        
+        data.forEach(track => {
+            const card = document.createElement('div');
+            card.className = 'spotify-card p-2 d-flex align-items-center mb-2';
+            card.style.borderRadius = '8px';
+            card.style.background = 'rgba(128, 128, 128, 0.1)';
+            card.innerHTML = `
+                <img src="${track.album_cover}" alt="Album cover" class="rounded me-3" style="width: 50px; height: 50px; object-fit: cover;">
+                <div class="flex-grow-1" style="min-width: 0;">
+                    <h6 class="mb-0 text-truncate">${track.name}</h6>
+                    <small class="text-muted text-truncate d-block">${track.artist}</small>
+                </div>
+                <div class="d-flex align-items-center gap-2 ms-2">
+                    <audio src="${track.preview_url}" preload="none" id="audio-${track.id}"></audio>
+                    <button type="button" class="btn btn-sm btn-outline-secondary rounded-circle" onclick="togglePlay('${track.id}')" id="playBtn-${track.id}" style="width:32px;height:32px;padding:0;">
+                        <i class="fa-solid fa-play" style="font-size: 12px; margin-left: 2px;"></i>
+                    </button>
+                    <button type="button" class="btn btn-sm btn-outline-success" onclick="selectSpotifyTrack('${track.preview_url}', '${track.id}')" id="selectBtn-${track.id}">
+                        Select
+                    </button>
+                </div>
+            `;
+            resultsDiv.appendChild(card);
+        });
+    }
+
+    let currentPlayingId = null;
+    function togglePlay(id) {
+        if (currentPlayingId && currentPlayingId !== id) {
+            const oldAudio = document.getElementById(`audio-${currentPlayingId}`);
+            oldAudio.pause();
+            document.getElementById(`playBtn-${currentPlayingId}`).innerHTML = '<i class="fa-solid fa-play" style="font-size: 12px; margin-left: 2px;"></i>';
+        }
+        
+        const audio = document.getElementById(`audio-${id}`);
+        const btn = document.getElementById(`playBtn-${id}`);
+        
+        if (audio.paused) {
+            audio.play();
+            btn.innerHTML = '<i class="fa-solid fa-pause" style="font-size: 12px;"></i>';
+            currentPlayingId = id;
+            
+            audio.onended = () => {
+                btn.innerHTML = '<i class="fa-solid fa-play" style="font-size: 12px; margin-left: 2px;"></i>';
+                currentPlayingId = null;
+            };
+        } else {
+            audio.pause();
+            btn.innerHTML = '<i class="fa-solid fa-play" style="font-size: 12px; margin-left: 2px;"></i>';
+            currentPlayingId = null;
+        }
+    }
+
+    function selectSpotifyTrack(previewUrl, id) {
+        document.getElementById('spotifyUrlInput').value = previewUrl;
+        
+        // Reset all buttons
+        document.querySelectorAll('[id^="selectBtn-"]').forEach(btn => {
+            btn.className = 'btn btn-sm btn-outline-success';
+            btn.innerText = 'Select';
+        });
+        
+        // Mark selected
+        const selectedBtn = document.getElementById(`selectBtn-${id}`);
+        selectedBtn.className = 'btn btn-sm btn-success text-white';
+        selectedBtn.innerText = 'Selected';
+        
+        // Make sure local select is 'none' so backend prioritizes spotify
+        document.getElementById('musicSelect').value = 'none';
+    }
+</script>
+{% endblock %}

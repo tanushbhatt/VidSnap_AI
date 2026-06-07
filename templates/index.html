@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+
+{% block title %}ReelFlow - AI Reel Generator{% endblock %}
+
+{% block content %}
+<section class="hero-section">
+    <div class="container text-center">
+        <div class="hero-badge">✨ V2.0 Now Live</div>
+        <h1 class="hero-title">Create Viral Instagram Reels<br><span class="gradient-text">with AI Power</span></h1>
+        <p class="hero-subtitle">Upload your media, enter a prompt, and let our AI handle the rest. Transitions, voiceovers, and background music in seconds.</p>
+        <a href="/create" class="cta-button primary-cta"><i class="fa-solid fa-bolt"></i> Start Creating Free</a>
+    </div>
+</section>
+
+<section class="features-section">
+    <div class="container">
+        <div class="row g-5">
+            <div class="col-md-4">
+                <div class="feature-card glass-card">
+                    <div class="icon-wrapper"><i class="fa-solid fa-microphone-lines"></i></div>
+                    <h3>AI Voiceovers</h3>
+                    <p>Enter a prompt and our AI creates realistic, high-quality voiceovers tailored for your reels.</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="feature-card glass-card">
+                    <div class="icon-wrapper"><i class="fa-solid fa-film"></i></div>
+                    <h3>Smart Transitions</h3>
+                    <p>Perfectly paced clips, cropped and scaled to 9:16 vertical format automatically.</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="feature-card glass-card">
+                    <div class="icon-wrapper"><i class="fa-solid fa-music"></i></div>
+                    <h3>Audio Mixing</h3>
+                    <p>Select background music that automatically dips when the AI voiceover speaks.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="showcase-section">
+    <div class="container text-center">
+        <h2 class="section-title">Built for Creators</h2>
+        <div class="image-grid mt-5">
+            <img src="{{ url_for('static', filename='1.jpg') }}" alt="Reel Example" class="showcase-image">
+            <img src="{{ url_for('static', filename='2.jpg') }}" alt="Reel Example" class="showcase-image">
+            <img src="{{ url_for('static', filename='3.jpg') }}" alt="Reel Example" class="showcase-image">
+        </div>
+    </div>
+</section>
+{% endblock %}
