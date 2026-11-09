@@ -58,19 +58,23 @@ def search_tracks(query, limit=10, token_info=None):
             print(f"DEBUG: Executing Spotify search for query: '{query}'")
             results = client.search(q=query, limit=limit, type='track')
             tracks = []
-            for item in results['tracks']['items']:
+            for item in results.get('tracks', {}).get('items', []):
                 # Only include tracks that have a preview_url
                 if item.get('preview_url'):
+                    artists = item.get('artists', [])
+                    artist_name = artists[0].get('name', 'Unknown Artist') if artists else "Unknown Artist"
+                    images = item.get('album', {}).get('images', [])
+                    album_cover = images[1]['url'] if len(images) > 1 else (images[0]['url'] if images else "")
                     track_info = {
-                        'id': item['id'],
-                        'name': item['name'],
-                        'artist': item['artists'][0]['name'] if item['artists'] else "Unknown Artist",
-                        'album_cover': item['album']['images'][1]['url'] if len(item['album']['images']) > 1 else (item['album']['images'][0]['url'] if item['album']['images'] else ""),
-                        'preview_url': item['preview_url'],
-                        'duration_ms': item['duration_ms']
+                        'id': item.get('id', ''),
+                        'name': item.get('name', 'Unknown Track'),
+                        'artist': artist_name,
+                        'album_cover': album_cover,
+                        'preview_url': item.get('preview_url'),
+                        'duration_ms': item.get('duration_ms', 30000)
                     }
                     tracks.append(track_info)
-            print(f"DEBUG: Found {len(tracks)} tracks with preview_urls out of {len(results['tracks']['items'])} total Spotify results.")
+            print(f"DEBUG: Found {len(tracks)} tracks with preview_urls out of {len(results.get('tracks', {}).get('items', []))} total Spotify results.")
             if tracks:
                 return tracks
         except Exception as e:
@@ -88,11 +92,11 @@ def search_tracks(query, limit=10, token_info=None):
         for item in data.get('results', []):
             if item.get('previewUrl'):
                 track_info = {
-                    'id': str(item['trackId']),
-                    'name': item['trackName'],
-                    'artist': item['artistName'],
+                    'id': str(item.get('trackId', '')),
+                    'name': item.get('trackName', 'Unknown Track'),
+                    'artist': item.get('artistName', 'Unknown Artist'),
                     'album_cover': item.get('artworkUrl100', ''),
-                    'preview_url': item['previewUrl'],
+                    'preview_url': item.get('previewUrl'),
                     'duration_ms': item.get('trackTimeMillis', 30000)
                 }
                 tracks.append(track_info)
@@ -109,7 +113,7 @@ def download_preview(preview_url, folder_name):
         
     try:
         print(f"Downloading Spotify preview from {preview_url}")
-        response = requests.get(preview_url, stream=True)
+        response = requests.get(preview_url, stream=True, timeout=15)
         response.raise_for_status()
         
         # Save to user's folder

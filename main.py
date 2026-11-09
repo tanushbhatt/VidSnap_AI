@@ -8,7 +8,10 @@ from reel_generator import generate_reel
 import spotify_service
 
 UPLOAD_FOLDER = 'user_uploads'
-ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'mp4'}
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'webp', 'mp4', 'mov', 'avi', 'mkv', 'webm'}
+
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 from dotenv import load_dotenv
 
@@ -105,15 +108,22 @@ def spotify_suggest():
 
 @app.route("/login")
 def login():
-    auth_url = spotify_service.get_auth_url()
-    return redirect(auth_url)
+    try:
+        auth_url = spotify_service.get_auth_url()
+        return redirect(auth_url)
+    except Exception as e:
+        print(f"Spotify login error: {e}")
+        return redirect('/create')
 
 @app.route("/callback")
 def callback():
-    code = request.args.get('code')
-    if code:
-        token_info = spotify_service.get_token(code)
-        session['spotify_token'] = token_info
+    try:
+        code = request.args.get('code')
+        if code:
+            token_info = spotify_service.get_token(code)
+            session['spotify_token'] = token_info
+    except Exception as e:
+        print(f"Spotify callback error: {e}")
     return redirect('/create')
 
 @app.route("/api/create-reel", methods=["POST"])
@@ -132,13 +142,13 @@ def api_create_reel():
     # Save files
     files_saved = 0
     for key, file in request.files.items():
-        if file and file.filename:
+        if file and file.filename and allowed_file(file.filename):
             filename = secure_filename(file.filename)
             file.save(os.path.join(folder_path, filename))
             files_saved += 1
             
     if files_saved == 0:
-        return jsonify({"success": False, "error": "No files uploaded"}), 400
+        return jsonify({"success": False, "error": "No valid media files uploaded (supported: images and videos)"}), 400
 
     # Start generation in background
     generation_status[received_id] = "Starting..."
@@ -155,11 +165,11 @@ def api_status(uuid_val):
 @app.route("/gallery")
 def gallery():
     os.makedirs("static/reels", exist_ok=True)
-    reels = os.listdir("static/reels")
-    # Sort reels by modified time (newest first)
+    valid_video_exts = ('.mp4', '.mov', '.webm', '.avi', '.mkv')
+    reels = [r for r in os.listdir("static/reels") if r.lower().endswith(valid_video_exts)]
     try:
         reels.sort(key=lambda x: os.path.getmtime(os.path.join("static/reels", x)), reverse=True)
-    except:
+    except Exception:
         pass
     return render_template("gallery.html", reels=reels)
 
